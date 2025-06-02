@@ -1,5 +1,5 @@
 from datetime import date
-from transaction_type import TransactionType
+from src.transaction_type import TransactionType
 
 class Transaction:
 
