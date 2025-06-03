@@ -19,7 +19,6 @@ def db_manager():
 class TestDatabaseManager:
 
     def test_create_db_manager(self,db_manager):
-        
         assert db_manager.connection is not None
         assert db_manager.cursor is not None
         
