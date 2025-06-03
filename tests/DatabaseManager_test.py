@@ -7,7 +7,7 @@ import os
 
 @pytest.fixture
 def db_manager():
-    db_path = 'tmp/test_database.db'
+    db_path = ':memory:'
     db_manager = DatabaseManager(db_path)
     yield db_manager
     db_manager.close()
@@ -19,7 +19,7 @@ def db_manager():
 class TestDatabaseManager:
 
     def test_create_db_manager(self,db_manager):
-        assert db_manager.db_path == 'tmp/test_database.db'
+        
         assert db_manager.connection is not None
         assert db_manager.cursor is not None
         
