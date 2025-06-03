@@ -12,8 +12,7 @@ class DatabaseManager:
         self.connect()
 
     def connect(self):
-        if not os.path.exists(self.db_path):
-            raise FileNotFoundError(f"Database file {self.db_path} does not exist.")        
+        
         self.connection = sqlite3.connect(self.db_path, check_same_thread=False)
         self.cursor = self.connection.cursor()   
 
