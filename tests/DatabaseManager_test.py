@@ -27,7 +27,7 @@ class TestDatabaseManager:
         assert db_manager.check_username_availability("test_user") == False
 
     def test_add_transaction(self, db_manager):
-        transaction = Transaction(date(2023, 10, 1), "Test Transaction", "Test Category", 100.0, TransactionType('Receita'), 1)
+        transaction = Transaction(date(2023, 10, 1), "Test Transaction", "Test Category", 100.0, TransactionType('Receita'))
         db_manager.create_user_table("test_user")
         db_manager.add_transaction("test_user", transaction)
         transactions = db_manager.get_all_transactions("test_user")
@@ -38,11 +38,11 @@ class TestDatabaseManager:
         assert transactions[0][4] == "Receita"   
 
     def test_update_transaction(self, db_manager):
-        transaction = Transaction(date(2023, 10, 1), "Test Transaction", "Test Category", 100.0, TransactionType('Receita'), 1)
+        transaction = Transaction(date(2023, 10, 1), "Test Transaction", "Test Category", 100.0, TransactionType('Receita'))
         db_manager.create_user_table("test_user")
         db_manager.add_transaction("test_user", transaction)
         
-        updated_transaction = Transaction(date(2023, 10, 2), "Updated Transaction", "Updated Category", 200.0, TransactionType('Despesa'), 1)
+        updated_transaction = Transaction(date(2023, 10, 2), "Updated Transaction", "Updated Category", 200.0, TransactionType('Despesa'))
         db_manager.update_transaction_by_id("test_user", 1, updated_transaction)
         
         transactions = db_manager.get_all_transactions("test_user")
@@ -51,10 +51,10 @@ class TestDatabaseManager:
         assert transactions[0][2] == "Updated Category"
         assert transactions[0][3] == 200.0
         assert transactions[0][4] == "Despesa"
-        assert transactions[0][5] == 1
+        
 
     def test_delete_transaction(self, db_manager):
-        transaction = Transaction(date(2023, 10, 1), "Test Transaction", "Test Category", 100.0, TransactionType('Receita'), 1)
+        transaction = Transaction(date(2023, 10, 1), "Test Transaction", "Test Category", 100.0, TransactionType('Receita'))
         db_manager.create_user_table("test_user")
         db_manager.add_transaction("test_user", transaction)
         
@@ -64,8 +64,8 @@ class TestDatabaseManager:
         assert len(transactions) == 0
 
     def test_get_category_transactions(self, db_manager):
-        transaction1 = Transaction(date(2023, 10, 1), "Test Transaction 1", "Test Category", 100.0, TransactionType('Receita'), 1)
-        transaction2 = Transaction(date(2023, 10, 2), "Test Transaction 2", "Test Category", 200.0, TransactionType('Despesa'), 2)
+        transaction1 = Transaction(date(2023, 10, 1), "Test Transaction 1", "Test Category", 100.0, TransactionType('Receita'))
+        transaction2 = Transaction(date(2023, 10, 2), "Test Transaction 2", "Test Category", 200.0, TransactionType('Despesa'))
         db_manager.create_user_table("test_user")
         db_manager.add_transaction("test_user", transaction1)
         db_manager.add_transaction("test_user", transaction2)
@@ -76,8 +76,8 @@ class TestDatabaseManager:
         assert category_transactions[1][1] == "Test Transaction 2"
 
     def test_get_all_transactions(self, db_manager):
-        transaction1 = Transaction(date(2023, 10, 1), "Test Transaction 1", "Test Category", 100.0, TransactionType('Receita'), 1)
-        transaction2 = Transaction(date(2023, 10, 2), "Test Transaction 2", "Test Category 2", 200.0, TransactionType('Despesa'), 2)
+        transaction1 = Transaction(date(2023, 10, 1), "Test Transaction 1", "Test Category", 100.0, TransactionType('Receita'))
+        transaction2 = Transaction(date(2023, 10, 2), "Test Transaction 2", "Test Category 2", 200.0, TransactionType('Despesa'))
         db_manager.create_user_table("test_user")
         db_manager.add_transaction("test_user", transaction1)
         db_manager.add_transaction("test_user", transaction2)
@@ -88,8 +88,8 @@ class TestDatabaseManager:
         assert transactions[1][1] == "Test Transaction 2"
 
     def test_get_all_debits(self, db_manager):
-        transaction1 = Transaction(date(2023, 10, 1), "Debit Transaction 1", "Test Category", 100.0, TransactionType('Despesa'), 1)
-        transaction2 = Transaction(date(2023, 10, 2), "Credit Transaction 1", "Test Category", 200.0, TransactionType('Receita'), 2)
+        transaction1 = Transaction(date(2023, 10, 1), "Debit Transaction 1", "Test Category", 100.0, TransactionType('Despesa'))
+        transaction2 = Transaction(date(2023, 10, 2), "Credit Transaction 1", "Test Category", 200.0, TransactionType('Receita'))
         db_manager.create_user_table("test_user")
         db_manager.add_transaction("test_user", transaction1)
         db_manager.add_transaction("test_user", transaction2)
@@ -100,8 +100,8 @@ class TestDatabaseManager:
         assert debits[0][4] == "Despesa"
 
     def test_get_all_credits(self, db_manager):
-        transaction1 = Transaction(date(2023, 10, 1), "Credit Transaction 1", "Test Category", 100.0, TransactionType('Receita'), 1)
-        transaction2 = Transaction(date(2023, 10, 2), "Debit Transaction 1", "Test Category", 200.0, TransactionType('Despesa'), 2)
+        transaction1 = Transaction(date(2023, 10, 1), "Credit Transaction 1", "Test Category", 100.0, TransactionType('Receita'))
+        transaction2 = Transaction(date(2023, 10, 2), "Debit Transaction 1", "Test Category", 200.0, TransactionType('Despesa'))
         db_manager.create_user_table("test_user")
         db_manager.add_transaction("test_user", transaction1)
         db_manager.add_transaction("test_user", transaction2)
@@ -112,8 +112,8 @@ class TestDatabaseManager:
         assert credits[0][4] == "Receita"
         
     def test_get_month_transactions(self, db_manager):
-        transaction1 = Transaction(date(2023, 10, 1), "Transaction October 1", "Test Category", 100.0, TransactionType('Receita'), 1)
-        transaction2 = Transaction(date(2023, 11, 1), "Transaction November 1", "Test Category", 200.0, TransactionType('Despesa'), 2)
+        transaction1 = Transaction(date(2023, 10, 1), "Transaction October 1", "Test Category", 100.0, TransactionType('Receita'))
+        transaction2 = Transaction(date(2023, 11, 1), "Transaction November 1", "Test Category", 200.0, TransactionType('Despesa'))
         db_manager.create_user_table("test_user")
         db_manager.add_transaction("test_user", transaction1)
         db_manager.add_transaction("test_user", transaction2)

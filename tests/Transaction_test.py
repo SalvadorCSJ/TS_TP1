@@ -14,8 +14,7 @@ def sample_transaction_1():
   description = "Test Transaction"
   amount = 100.0
   type = TransactionType("Receita")
-  id = 1
-  cls = Transaction(transaction_date, description, transaction_category, amount, type, id)
+  cls = Transaction(transaction_date, description, transaction_category, amount, type)
   return cls
 
 @pytest.fixture
@@ -25,8 +24,7 @@ def sample_transaction_2():
   description = "Test Transaction expense"
   amount = 50.0
   type = TransactionType("Despesa")
-  id = 2
-  cls = Transaction(transaction_date, description, transaction_category, amount, type, id)
+  cls = Transaction(transaction_date, description, transaction_category, amount, type)
   return cls
 
 class TestTransaction:
@@ -54,6 +52,5 @@ class TestTransaction:
   def test_get_transaction_type(self,sample_transaction_1):
     assert sample_transaction_1.get_type() == "Receita"
 
-  def test_get_transaction_id(self,sample_transaction_1): 
-    assert sample_transaction_1.get_id() == 1
+
 

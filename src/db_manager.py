@@ -31,9 +31,8 @@ class DatabaseManager:
             transaction.get_category(),
             transaction.get_amount(),
             transaction.get_type(),
-            transaction.get_id()
         )
-        insert_query = f"INSERT INTO {user} (date, description, category, amount, type, id) VALUES (?, ?, ?, ?, ?, ?)"
+        insert_query = f"INSERT INTO {user} (date, description, category, amount, type) VALUES (?, ?, ?, ?, ?)"
         self.cursor.execute(insert_query, query_parameters)
         self.commit()
 
@@ -112,6 +111,6 @@ class DatabaseManager:
             raise RuntimeError("Database connection is not established.")
         if not self.check_username_availability(user):
             raise ValueError(f"Username '{user}' already exists.")
-        create_table_query = f"CREATE TABLE IF NOT EXISTS {user} (date, description, category, amount, type, id)"
+        create_table_query = f"CREATE TABLE IF NOT EXISTS {user} (date, description, category, amount, type, id INTEGER PRIMARY KEY)"
         self.cursor.execute(create_table_query)
         self.commit()
