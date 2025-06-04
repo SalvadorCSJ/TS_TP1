@@ -4,6 +4,7 @@ from src.transaction_type import TransactionType
 from datetime import date
 import pytest
 import os
+from sqlite3 import OperationalError
 
 @pytest.fixture
 def db_manager():
@@ -125,3 +126,41 @@ class TestDatabaseManager:
         november_transactions = db_manager.get_month_transactions("test_user", 11, 2023)
         assert len(november_transactions) == 1
         assert november_transactions[0][1] == "Transaction November 1"
+
+    def test_multiple_users_isolated_tables(self, db_manager):
+        
+        db_manager.create_user_table("Ana")
+        Transaction1 = Transaction(date(2025,1,1), "A1", "Trabalho", 100.0, TransactionType('Receita'))
+        db_manager.add_transaction("Ana", Transaction1)
+
+        db_manager.create_user_table("Saulo")
+        Transaction2 = Transaction(date(2025,1,1), "B1", "Comida", 50.0, TransactionType('Despesa'))
+        db_manager.add_transaction("Saulo",Transaction2)
+
+        Ana_transactions = db_manager.get_all_transactions("Ana")
+        Saulo_transactions = db_manager.get_all_transactions("Saulo")
+
+        assert len(Ana_transactions) == 1
+        assert len(Saulo_transactions) == 1
+        assert Ana_transactions[0][1] == "A1"
+        assert Saulo_transactions[0][1] == "B1"
+
+    def test_get_all_debits_and_credits_empty_table(self,db_manager):
+        db_manager.create_user_table("Empty")
+    
+        assert db_manager.get_all_debits("Empty") == []
+        assert db_manager.get_all_credits("Empty") == []
+
+    def test_get_transactions_with_invalid_user_raises_exception(self,db_manager):
+        with pytest.raises(OperationalError):
+            db_manager.get_all_debits("nonexisting_user")
+
+    def test_create_table_without_connection_raises_exception(self, db_manager):
+        db_manager.close()
+        with pytest.raises(RuntimeError):
+            db_manager.create_user_table("new_user")
+    
+    def test_commit_without_connection_raises_exception(self, db_manager):
+        db_manager.close()
+        with pytest.raises(RuntimeError):
+            db_manager.commit()
