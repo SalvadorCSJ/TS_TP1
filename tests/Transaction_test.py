@@ -52,5 +52,7 @@ class TestTransaction:
   def test_get_transaction_type(self,sample_transaction_1):
     assert sample_transaction_1.get_type() == "Receita"
 
-
+  def test_log_sample_transaction(self, sample_transaction_1):
+    log_test = sample_transaction_1.log_transaction()
+    assert log_test == "Date: 2025-05-26, Description: Test Transaction, Category: payment, Amount: 100.0, Type: Receita"
 
