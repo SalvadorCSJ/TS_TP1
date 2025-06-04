@@ -20,11 +20,24 @@ class DatabaseManager:
         if self.connection:
             self.connection.close()
             self.connection = None
-            self.cursor = None
-        
+            self.cursor = None        
+
+    def ensure_user_table_exists(self, user: str):
+        """
+        Checks if the user's transaction table exists and creates it if not.
+        """
+        if not self.cursor:
+            raise RuntimeError("Database connection is not established for ensure_user_table_exists.")
+        if self.check_username_availability(user):
+            self.create_user_table(user)
+            print(f"INFO: Table for user '{user}' created as it did not exist.")
+
     def add_transaction(self, user:str , transaction: Transaction):
         if not self.cursor:
             raise RuntimeError("Database connection is not established.")
+        
+        self.ensure_user_table_exists(user)
+
         query_parameters = (
             transaction.get_date(),
             transaction.get_description(),
@@ -36,6 +49,9 @@ class DatabaseManager:
         self.cursor.execute(insert_query, query_parameters)
         self.commit()
 
+        transaction_id = self.cursor.lastrowid
+        return transaction_id
+
     def update_transaction_by_id(self, user: str, transaction_id: int, updated_transaction: Transaction):
         if not self.cursor:
             raise RuntimeError("Database connection is not established.")
@@ -45,8 +61,7 @@ class DatabaseManager:
             updated_transaction.get_category(),
             updated_transaction.get_amount(),
             updated_transaction.get_type(),
-            transaction_id
-            
+            transaction_id            
         )
         update_query = f"UPDATE {user} SET date = ?, description = ?, category = ?, amount = ?, type = ? WHERE id = ?"
         self.cursor.execute(update_query, query_parameters)
@@ -69,6 +84,9 @@ class DatabaseManager:
     def get_all_transactions(self, user: str):
         if not self.cursor:
             raise RuntimeError("Database connection is not established.")
+        
+        self.ensure_user_table_exists(user)
+
         select_query = f"SELECT * FROM {user}"
         self.cursor.execute(select_query)
         return self.cursor.fetchall()
