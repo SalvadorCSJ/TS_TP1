@@ -1,0 +1,312 @@
+$(document).ready(function () {
+    bindEvents();
+});
+
+const bindEvents = _ => {
+    $('.btn-access-user-area').on('click', _ => {
+        accessUserArea();
+    });
+
+    $('.username-input').on('keypress', (event) => {
+        const ENTER_KEY_CODE = 13;
+        if (event.which == ENTER_KEY_CODE) {
+            $('.btn-access-user-area').click();
+        }
+    });
+
+    $('.btn-show-add-modal').on('click', _ => {
+        showAddModal();
+    });
+
+    $('.btn-add-transaction').on('click', _ => {
+        if (validateAddInput()) {
+            let transaction = getAddModalTransaction();
+            addTransaction(transaction);
+        }
+    });
+
+    $('.btn-show-update-modal').on('click', _ => {
+        showUpdateModal();
+    });
+
+    $('.btn-update-transaction').on('click', _ => {
+        if (validateEditInput()) {
+            let transaction = getEditModalTransaction();
+            updateTransaction(transaction);
+        }
+    });
+}
+
+const getAddModalTransaction = _ => {
+    return {
+        date: $('.new-transaction-date-input').val(),
+        description: $('.new-transaction-description-input').val(),
+        category: $('.new-transaction-category-input').val(),
+        amount: $('.new-transaction-amount-input').val(),
+        type: $('.new-transaction-type-input').val(),
+    };
+}
+
+const validateAddInput = _ => {
+    let isValid = true;
+    const transaction = getAddModalTransaction();
+
+    if (!transaction.date) {
+        $('.new-transaction-date-input').addClass('is-invalid');
+        isValid = false;
+    }
+    if (!transaction.description) {
+        $('.new-transaction-description-input').addClass('is-invalid');
+        isValid = false;
+    }
+    if (!transaction.category) {
+        $('.new-transaction-category-input').addClass('is-invalid');
+        isValid = false;
+    }
+    if (!transaction.amount) {
+        $('.new-transaction-amount-input').addClass('is-invalid');
+        isValid = false;
+    }
+
+    return isValid;
+}
+
+const validateEditInput = _ => {
+    let isValid = true;
+    const transaction = getEditModalTransaction();
+
+    if (!transaction.date) {
+        $('.update-transaction-date-input').addClass('is-invalid');
+        isValid = false;
+    }
+    if (!transaction.description) {
+        $('.update-transaction-description-input').addClass('is-invalid');
+        isValid = false;
+    }
+    if (!transaction.category) {
+        $('.update-transaction-category-input').addClass('is-invalid');
+        isValid = false;
+    }
+    if (!transaction.amount) {
+        $('.update-transaction-amount-input').addClass('is-invalid');
+        isValid = false;
+    }
+
+    return isValid;
+}
+
+const getEditModalTransaction = _ => {
+    return {        
+        id: $('#updateTransactionModal').data('id'),
+        date: $('.update-transaction-date-input').val(),
+        description: $('.update-transaction-description-input').val(),
+        category: $('.update-transaction-category-input').val(),
+        amount: $('.update-transaction-amount-input').val(),
+        type: $('.update-transaction-type-input').val(),
+    };
+}
+
+const showAddModal = _ => {
+    $('.new-transaction-date-input').val(formatDateToYYYYMMDD(new Date()));
+    $('.new-transaction-description-input').val('');
+    $('.new-transaction-category-input').val('');
+    $('.new-transaction-amount-input').val('');
+    $('.new-transaction-type-input').val('Receita');
+
+    const modalElement = document.getElementById('addTransactionModal');
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+};
+
+const formatDateToYYYYMMDD = (date) => {
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  
+  return `${year}-${month}-${day}`;
+}
+
+const accessUserArea = _ => {
+    const usernameInput = $('.username-input');
+    const username = usernameInput.val();
+
+    if (!username) {
+        usernameInput.addClass('is-invalid');
+        return;
+    }
+
+    $('.subpage-home').remove();
+    $('.subpage-transactions').show();
+    $('.subpage-transactions').data('username', username);
+    $('.subpage-transactions .username-display').text(username)
+    getTransactions(username);
+}
+
+const getTransactions = (username) => {
+    $.ajax({
+        url: `/users/${username}/transactions`,
+        method: 'GET',
+        success: (response) => {
+            showTransactions(response)
+        },
+        error: _ => {
+            showToast('Algo deu errado ao acessar este usuário.', 'danger')
+        }
+    });
+}
+
+const showTransactions = (transactions) => {
+    const transactionsPlaceholder = $('.transactions-placeholder');
+    const transactionsContainer = $('.transactions-container');
+    transactionsContainer.empty();
+
+    if (transactions.length == 0) {
+        transactionsPlaceholder.css('display', 'flex');
+    }
+
+    for (const transaction of transactions) {
+        buildTransaction(transaction);
+    }
+}
+
+const buildTransaction = (transaction) => {
+    $('.transactions-placeholder').hide();
+
+    const transactionsContainer = $('.transactions-container');
+    const transactionCard = $(`
+        <div class="transaction-card card m-2" data-id=${transaction.id}>
+            <div class="card-body d-flex align-items-center" style="gap: 10px;">
+                <span class="transaction-card-description flex-grow-1">${transaction.description}</span>
+                <button type="button" class="btn btn-light btn-update-transaction" title="Editar transação">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button type="button" class="btn btn-light btn-delete-transaction" title="Excluir transação">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+        </div>
+    `).appendTo(transactionsContainer);
+
+    transactionCard.data('transaction', transaction);
+    transactionCard.data('id', transaction.id);
+    bindTransactionCardEvents(transactionCard)
+
+    return transactionCard;
+}
+
+const bindTransactionCardEvents = (selector) => {
+    $(selector).find(".btn-update-transaction").on("click", event => {
+        const transactionCard = $(event.currentTarget).closest(".transaction-card");
+        const transaction = transactionCard.data("transaction");
+        showEditModal(transaction);
+    });
+    
+    $(selector).find(".btn-delete-transaction").on("click", event => {
+        const transactionCard = $(event.currentTarget).closest(".transaction-card");
+        const transaction = transactionCard.data("transaction");
+        const id = transaction.id;
+        deleteTransaction(id);
+    });
+}
+
+const showEditModal = (transaction) => {
+    $("#updateTransactionModal").data("id", transaction.id);
+    $('.update-transaction-date-input').val(transaction.date);
+    $('.update-transaction-description-input').val(transaction.description);
+    $('.update-transaction-category-input').val(transaction.category);
+    $('.update-transaction-amount-input').val(transaction.amount);
+    $('.update-transaction-type-input').val(transaction.type);
+
+    const modalElement = document.getElementById("updateTransactionModal");
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+}
+
+const addTransaction = (transaction) => {
+    const username = $('.subpage-transactions').data('username');
+    $.ajax({
+        url: `/users/${username}/transactions`,
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            date: transaction.date,
+            description: transaction.description,
+            category: transaction.category,
+            amount: transaction.amount,
+            type: transaction.type,
+        }),
+        success: (response) => {
+            const modalElement = document.getElementById('addTransactionModal');
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            modal.hide();
+
+            showToast(response.message, 'success');
+            transaction.id = response.transactionId;
+            buildTransaction(transaction);
+        },
+        error: _ => {
+            showToast('Algo deu errado ao criar a transação.', 'danger')
+        }
+    });
+}
+
+const updateTransaction = (transaction) => {
+    const username = $('.subpage-transactions').data('username');
+    $.ajax({
+        url: `/users/${username}/transactions/${transaction.id}`,
+        method: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            id: transaction.id,
+            date: transaction.date,
+            description: transaction.description,
+            category: transaction.category,
+            amount: transaction.amount,
+            type: transaction.type,
+        }),
+        success: (response) => {
+            const modalElement = document.getElementById('updateTransactionModal');
+            const modal = bootstrap.Modal.getInstance(modalElement)
+            modal.hide();
+
+            showToast(response.message, 'success');
+
+            const transactionCard = $(`.transaction-card[data-id=${transaction.id}]`);
+            transactionCard.data('transaction', transaction);
+            transactionCard.find('.transaction-card-description').text(transaction.description);
+        },
+        error: _ => {
+            showToast('Algo deu errado ao atualizar a transação.', 'danger')
+        }
+    });
+}
+
+const deleteTransaction = (id) => {
+    const username = $('.subpage-transactions').data('username');
+    $.ajax({
+        url: `/users/${username}/transactions/${id}`,
+        method: 'DELETE',
+        success: (response) => {
+            showToast(response.message, 'success');
+
+            const transactionCard = $(`.transaction-card[data-id=${id}]`);
+            transactionCard.remove();
+
+            if ($('.transaction-card').length == 0) {
+                $('.transactions-placeholder').show();
+            }
+        },
+        error: _ => {
+            showToast('Algo deu errado ao excluir a transação.', 'danger')
+        }
+    });
+}
+
+const showToast = (message, type) => {
+    $('.toastMessage').text(message);
+    $('#resultToast').removeClass('bg-primary bg-success bg-danger').addClass(`bg-${type}`);
+    
+    const toastElement = document.getElementById('resultToast');
+    const toast = new bootstrap.Toast(toastElement);
+    toast.show();
+};

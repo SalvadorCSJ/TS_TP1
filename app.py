@@ -4,6 +4,10 @@ from flask_cors import CORS
 from datetime import datetime, date
 
 from src.db_manager import DatabaseManager
+from src.transactions import Transaction
+from src.transaction_type import TransactionType
+
+import sqlite3
 
 DB_FILE_PATH = 'finance.db'
 
@@ -27,6 +31,7 @@ def initialize_database():
 
 initialize_database()
 
+
 def format_transaction_rows(rows):
     """Converts a list of transaction tuples from DB into a list of dictionaries."""
     columns = ['date', 'description', 'category', 'amount', 'type', 'id']
@@ -40,6 +45,7 @@ def format_transaction_rows(rows):
                 pass
             formatted_transactions.append(transaction_dict)
     return formatted_transactions
+
 
 @app.before_request
 def check_db_connection():
@@ -59,12 +65,10 @@ def check_db_connection():
 def home():
     return render_template("home.html")
 
+
 @app.route('/users/<username>/transactions', methods=['GET'])
 def get_user_transactions(username):
     """Gets all transactions for a user."""
-    if db_manager.check_username_availability(username):
-        app.logger.warning(f"Get transactions attempt for non-existent user: {username}")
-        return jsonify({"error": f"User '{username}' does not exist."}), 404
     try:
         transactions_data = db_manager.get_all_transactions(username)
         return jsonify(format_transaction_rows(transactions_data)), 200
@@ -75,22 +79,130 @@ def get_user_transactions(username):
         app.logger.error(f"Unexpected error getting all transactions for {username}: {str(e)}")
         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
     
-@app.route('/users/<username>', methods=['GET'])
-def create_user(username):
-    """Creates a new user table."""
+
+@app.route('/users/<username>/transactions', methods=['POST'])
+def add_user_transaction(username):
+    """Adds a new transaction for a user."""
+    if db_manager.check_username_availability(username):
+        app.logger.warning(f"Add transaction attempt for non-existent user: {username}")
+        return jsonify({"error": f"User '{username}' does not exist. Create the user first."}), 404
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Invalid JSON payload. Request body is empty or not JSON."}), 400
+
+    required_fields = ['date', 'description', 'category', 'amount', 'type']
+    missing_fields = [field for field in required_fields if field not in data]
+    if missing_fields:
+        return jsonify({"error": f"Missing fields: {', '.join(missing_fields)}"}), 400
+
     try:
-        db_manager.create_user_table(username)
-        app.logger.info(f"User table created for: {username}")
-        return jsonify({"message": f"User '{username}' table created successfully."}), 201
-    except ValueError as e: # Username already exists
-        app.logger.warning(f"Attempt to create existing user: {username} - {str(e)}")
-        return jsonify({"error": str(e)}), 409 # Conflict
-    except RuntimeError as e: # DB connection issue
-        app.logger.error(f"RuntimeError during user creation for {username}: {str(e)}")
+        trans_date_str = data['date']
+        trans_date_obj = datetime.strptime(trans_date_str, '%Y-%m-%d').date()
+
+        trans_type_name = data['type']
+        trans_type_obj = TransactionType(trans_type_name)
+
+        transaction_amount = float(data['amount'])
+        description = str(data['description'])
+        category = str(data['category'])
+
+        new_transaction = Transaction(
+            date=trans_date_obj,
+            description=description,
+            category=category,
+            amount=transaction_amount,
+            type=trans_type_obj
+        )
+
+        transaction_id = db_manager.add_transaction(username, new_transaction)
+        app.logger.info(f"Transaction {transaction_id} added for user: {username}")
+
+        return jsonify({"message": f"Transaction added successfully.", "transactionId": transaction_id}), 200
+
+    except ValueError as e:
+        app.logger.warning(f"ValueError adding transaction for {username}: {str(e)}. Data: {data}")
+        return jsonify({"error": f"Invalid data provided: {str(e)}"}), 400
+    except sqlite3.OperationalError as e:
+        app.logger.error(f"Database operational error adding transaction for {username}: {str(e)}")
+        return jsonify({"error": "A database operational error occurred."}), 500
+    except RuntimeError as e:
+        app.logger.error(f"RuntimeError adding transaction for {username}: {str(e)}")
         return jsonify({"error": str(e)}), 500
     except Exception as e:
-        app.logger.error(f"Unexpected error creating user {username}: {str(e)}")
+        app.logger.error(f"Unexpected error adding transaction for {username}: {str(e)}. Data: {data}")
         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+
+
+@app.route('/users/<username>/transactions/<int:transaction_id>', methods=['PUT'])
+def update_user_transaction(username, transaction_id):
+    """Updates an existing transaction for a user."""
+    if db_manager.check_username_availability(username):
+        app.logger.warning(f"Update transaction attempt for non-existent user: {username}")
+        return jsonify({"error": f"User '{username}' does not exist."}), 404
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Invalid JSON payload. Request body is empty or not JSON."}), 400
+
+    required_fields = ['date', 'description', 'category', 'amount', 'type']
+    missing_fields = [field for field in required_fields if field not in data]
+    if missing_fields:
+        return jsonify({"error": f"Missing fields for update: {', '.join(missing_fields)}"}), 400
+
+    try:
+        trans_date_obj = datetime.strptime(data['date'], '%Y-%m-%d').date()
+        trans_type_obj = TransactionType(data['type'])
+        transaction_amount = float(data['amount'])
+        description = str(data['description'])
+        category = str(data['category'])
+
+        updated_transaction = Transaction(
+            date=trans_date_obj,
+            description=description,
+            category=category,
+            amount=transaction_amount,
+            type=trans_type_obj
+        )
+
+        db_manager.update_transaction_by_id(username, transaction_id, updated_transaction)
+        app.logger.info(f"Transaction {transaction_id} updated for user: {username}")
+
+        return jsonify({"message": f"Transaction ID {transaction_id} updated successfully."}), 200
+    except ValueError as e:
+        app.logger.warning(f"ValueError updating transaction {transaction_id} for {username}: {str(e)}. Data: {data}")
+        return jsonify({"error": f"Invalid data provided: {str(e)}"}), 400
+    except sqlite3.OperationalError as e:
+        app.logger.error(f"Database operational error updating transaction {transaction_id} for {username}: {str(e)}")
+        return jsonify({"error": "A database operational error occurred during update."}), 500
+    except RuntimeError as e:
+        app.logger.error(f"RuntimeError updating transaction {transaction_id} for {username}: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        app.logger.error(f"Unexpected error updating transaction {transaction_id} for {username}: {str(e)}. Data: {data}")
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+
+
+@app.route('/users/<username>/transactions/<int:transaction_id>', methods=['DELETE'])
+def delete_user_transaction(username, transaction_id):
+    """Deletes a transaction for a user."""
+    if db_manager.check_username_availability(username):
+        app.logger.warning(f"Delete transaction attempt for non-existent user: {username}")
+        return jsonify({"error": f"User '{username}' does not exist."}), 404
+    try:
+        db_manager.delete_transaction_by_id(username, transaction_id)
+        app.logger.info(f"Transaction {transaction_id} deleted for user: {username}")
+        return jsonify({"message": f"Transaction ID {transaction_id} deleted successfully."}), 200
+    except sqlite3.OperationalError as e:
+        app.logger.error(f"Database operational error deleting transaction {transaction_id} for {username}: {str(e)}")
+        return jsonify({"error": "A database operational error occurred during delete."}), 500
+    except RuntimeError as e:
+        app.logger.error(f"RuntimeError deleting transaction {transaction_id} for {username}: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        app.logger.error(f"Unexpected error deleting transaction {transaction_id} for {username}: {str(e)}")
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+    
 
 if __name__ == '__main__':
     import logging
