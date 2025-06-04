@@ -25,6 +25,6 @@ class Transaction:
     def get_type(self):
         return self.type.get_type()
 
-    
-    def print_transaction(self):
-        print(f"Date: {self.date.strftime('%Y-%m-%d')}, Description: {self.description}, Category: {self.category}, Amount: {self.amount}, Type: {self.type.type_name}")
+    def log_transaction(self):
+        log = f"Date: {self.date.strftime('%Y-%m-%d')}, Description: {self.description}, Category: {self.category}, Amount: {self.amount}, Type: {self.type.type_name}"
+        return log
