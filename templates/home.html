@@ -18,6 +18,19 @@
     </div>
     <div class="subpage subpage-transactions d-flex flex-column gap-3">
         <h2>Transações de <span class="username-display"></span></h2>
+        
+        <div class="filters-row mb-3">
+            <div class="d-flex gap-2">
+                <button class="btn filter-input btn-filter-all-transactions btn-outline-secondary">Todas as transações</button>
+                <button class="btn filter-input btn-filter-credits btn-outline-success">Receitas</button>
+                <button class="btn filter-input btn-filter-debits btn-outline-danger">Despesas</button>
+                <button class="btn filter-input btn-filter-month btn-outline-secondary">Filtrar por mês</button>
+                <select class="form-select filter-input category-filter" style="width: fit-content;">
+                    <option value="" selected></option>
+                </select>
+            </div>
+        </div>
+
         <div class="subpage-header d-flex justify-content-between align-items-end">
             <div>Total das transações exibidas: R$ <span class="transactions-sum"></span></div>
             <button class="btn btn-success btn-show-add-modal">Adicionar transação</button>
@@ -139,6 +152,51 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal Month Filter -->
+    <div class="modal fade" id="monthFilterModal" tabindex="-1" aria-labelledby="monthFilterModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Filtrar por mês</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="w-100">
+                            Ano
+                            <input class="form-control filter-year-input" type="year"></input>
+                        <label>
+                    </div>
+                    <div class="form-group">
+                        <label class="w-100">
+                            Mês
+                            <select class="form-control filter-month-input">
+                                <option value="1">Janeiro</option>
+                                <option value="2">Fevereiro</option>
+                                <option value="3">Março</option>
+                                <option value="4">Abril</option>
+                                <option value="5">Maio</option>
+                                <option value="6">Junho</option>
+                                <option value="7">Julho</option>
+                                <option value="8">Agosto</option>
+                                <option value="9">Setembro</option>
+                                <option value="10">Outubro</option>
+                                <option value="11">Novembro</option>
+                                <option value="12">Dezembro</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success btn-apply-month-filter">Filtrar</button>
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Voltar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
     <div class="scripts-section">
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>

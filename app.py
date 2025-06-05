@@ -203,6 +203,59 @@ def delete_user_transaction(username, transaction_id):
         app.logger.error(f"Unexpected error deleting transaction {transaction_id} for {username}: {str(e)}")
         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
     
+@app.route('/users/<username>/transactions/category/<category_name>', methods=['GET'])
+def get_user_transactions_by_category(username, category_name):
+    """Gets transactions for a user filtered by category."""
+    try:
+        transactions_data = db_manager.get_category_transactions(username, category_name)
+        return jsonify(format_transaction_rows(transactions_data)), 200
+    except RuntimeError as e:
+        app.logger.error(f"RuntimeError getting category '{category_name}' transactions for {username}: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        app.logger.error(f"Unexpected error getting category '{category_name}' transactions for {username}: {str(e)}")
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+
+@app.route('/users/<username>/transactions/debits', methods=['GET'])
+def get_user_debit_transactions(username):
+    """Gets all debit transactions (Despesa) for a user."""
+    try:
+        transactions_data = db_manager.get_all_debits(username)
+        return jsonify(format_transaction_rows(transactions_data)), 200
+    except RuntimeError as e:
+        app.logger.error(f"RuntimeError getting debit transactions for {username}: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        app.logger.error(f"Unexpected error getting debit transactions for {username}: {str(e)}")
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+
+@app.route('/users/<username>/transactions/credits', methods=['GET'])
+def get_user_credit_transactions(username):
+    """Gets all credit transactions (Receita) for a user."""
+    try:
+        transactions_data = db_manager.get_all_credits(username)
+        return jsonify(format_transaction_rows(transactions_data)), 200
+    except RuntimeError as e:
+        app.logger.error(f"RuntimeError getting credit transactions for {username}: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        app.logger.error(f"Unexpected error getting credit transactions for {username}: {str(e)}")
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+
+@app.route('/users/<username>/transactions/month/<int:year>/<int:month>', methods=['GET'])
+def get_user_transactions_by_month(username, year, month):
+    """Gets transactions for a user filtered by month and year."""
+    if not (1 <= month <= 12):
+        return jsonify({"error": "Invalid month. Must be between 1 and 12."}), 400
+    try:
+        transactions_data = db_manager.get_month_transactions(username, month, year)
+        return jsonify(format_transaction_rows(transactions_data)), 200
+    except RuntimeError as e:
+        app.logger.error(f"RuntimeError getting month {year}-{month} transactions for {username}: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        app.logger.error(f"Unexpected error getting month {year}-{month} transactions for {username}: {str(e)}")
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
 if __name__ == '__main__':
     import logging

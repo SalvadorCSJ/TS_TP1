@@ -35,6 +35,85 @@ const bindEvents = _ => {
             updateTransaction(transaction);
         }
     });
+
+    $('.btn-filter-all-transactions').on('click', _ => {
+        clearFilters();
+        $('.btn-filter-all-transactions').addClass('active');
+        getAllTransactions();
+    });
+
+    $('.btn-filter-credits').on('click', _ => {
+        clearFilters();
+        $('.btn-filter-credits').addClass('active');
+        getCredits();
+    });
+
+    $('.btn-filter-debits').on('click', _ => {
+        clearFilters();
+        $('.btn-filter-debits').addClass('active');
+        getDebits();
+    });
+
+    $('.btn-filter-month').on('click', _ => {
+        showMonthFilterModal();
+    });
+
+    $('.category-filter').on('change', _ => {
+        const categoryFilter = $('.category-filter');
+        const selectedCategory = categoryFilter.val();
+        clearFilters();
+        if (selectedCategory == 'Todas as categorias') {
+            $('.btn-filter-all-transactions').click();
+        }
+        else {
+            getTransactionsByCategory(selectedCategory);
+        }
+    });
+
+    $('.btn-apply-month-filter').on('click', _ => {
+        const yearInput = $('.filter-year-input');
+        const monthInput = $('.filter-month-input');
+
+        const month = monthInput.val();
+        const year = yearInput.val();
+
+        monthName = monthInput.find('option:selected').text();
+
+        if (!year) {
+            yearInput.addClass('is-invalid');
+        }
+        else {
+            yearInput.removeClass('is-invalid');
+            getTransactionsByMonth(year, month);
+            clearFilters();
+            $('.btn-filter-month').text(`${monthName} de ${year}`);
+            $('.btn-filter-month').addClass('active');
+
+        }
+    });
+}
+
+const showMonthFilterModal = () => {
+    const monthInput = $('.filter-month-input');
+    const yearInput = $('.filter-year-input');
+    const currentDate = new Date();
+
+    yearInput.removeClass('is-invalid');
+    yearInput.val(currentDate.getFullYear());
+    monthInput.val(currentDate.getMonth() + 1);
+    
+    const modalElement = document.getElementById('monthFilterModal');
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+}
+
+const clearFilters = _ => {
+    $('btn-filter-month').removeClass('active')
+    $('.btn-filter-all-transactions').removeClass('active');
+    $('.btn-filter-credits').removeClass('active');
+    $('.btn-filter-debits').removeClass('active');
+    $('.btn-filter-month').removeClass('active');
+    $('.btn-filter-month').text('Filtrar por mês');
 }
 
 const getAddModalTransaction = _ => {
@@ -147,23 +226,85 @@ const accessUserArea = _ => {
     $('.subpage-transactions').show();
     $('.subpage-transactions').data('username', username);
     $('.subpage-transactions .username-display').text(username)
-    getTransactions(username);
+    $('.btn-filter-all-transactions').addClass('active');
+    getAllTransactions();
 }
 
-const getTransactions = (username) => {
+const getAllTransactions = () => {
+    const username = $('.subpage-transactions').data('username');
     $.ajax({
         url: `/users/${username}/transactions`,
         method: 'GET',
         success: (response) => {
-            showTransactions(response)
+            buildTransactionCards(response);
         },
         error: _ => {
-            showToast('Algo deu errado ao acessar este usuário.', 'danger')
+            showToast('Ocorreu um erro ao tentar recuperar as transações.', 'danger')
         }
     });
 }
 
-const showTransactions = (transactions) => {
+const getCredits = () => {
+    const username = $('.subpage-transactions').data('username');
+    $.ajax({
+        url: `/users/${username}/transactions/credits`,
+        method: 'GET',
+        success: (response) => {
+            buildTransactionCards(response);
+        },
+        error: _ => {
+            showToast('Ocorreu um erro ao tentar recuperar as transações.', 'danger')
+        }
+    });
+}
+
+const getDebits = () => {
+    const username = $('.subpage-transactions').data('username');
+    $.ajax({
+        url: `/users/${username}/transactions/debits`,
+        method: 'GET',
+        success: (response) => {
+            buildTransactionCards(response);
+        },
+        error: _ => {
+            showToast('Ocorreu um erro ao tentar recuperar as transações.', 'danger')
+        }
+    });
+}
+
+const getTransactionsByCategory = (category) => {
+    const username = $('.subpage-transactions').data('username');
+    $.ajax({
+        url: `/users/${username}/transactions/category/${category}`,
+        method: 'GET',
+        success: (response) => {
+            buildTransactionCards(response);
+            setCategoriesFilter(category);
+        },
+        error: _ => {
+            showToast('Ocorreu um erro ao tentar recuperar as transações.', 'danger')
+        }
+    });
+}
+
+const getTransactionsByMonth = (year, month) => {
+    const username = $('.subpage-transactions').data('username');
+    $.ajax({
+        url: `/users/${username}/transactions/month/${year}/${month}`,
+        method: 'GET',
+        success: (response) => {
+            const modalElement = document.getElementById('monthFilterModal');
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            modal.hide();
+            buildTransactionCards(response);
+        },
+        error: _ => {
+            showToast('Ocorreu um erro ao tentar recuperar as transações.', 'danger')
+        }
+    });
+}
+
+const buildTransactionCards = (transactions) => {
     const transactionsPlaceholder = $('.transactions-placeholder');
     const transactionsContainer = $('.transactions-container');
     transactionsContainer.empty();
@@ -172,9 +313,13 @@ const showTransactions = (transactions) => {
         transactionsPlaceholder.css('display', 'flex');
     }
 
+    transactions = transactions.sort((a, b) => b.date.localeCompare(a.date))
+
     for (const transaction of transactions) {
         buildTransactionCard(transaction);
     }
+
+    setCategoriesFilter();
 }
 
 const buildTransactionCard = (transaction) => {
@@ -183,7 +328,7 @@ const buildTransactionCard = (transaction) => {
     const transactionsContainer = $('.transactions-container');
     const transactionCard = $(`
         <div class="transaction-card card" data-id=${transaction.id}>
-            <div class="card-body d-flex align-items-center" style="gap: 10px;">
+            <div class="card-body d-flex align-items-start gap-2">
                 <div class="flex-grow-1">
                     <div class="transaction-card-date">${formatDate(transaction.date)}</div>
                     <div class="transaction-card-category">${transaction.category}</div>
@@ -269,6 +414,7 @@ const addTransaction = (transaction) => {
             showToast(response.message, 'success');
             transaction.id = response.transactionId;
             buildTransactionCard(transaction);
+            updateTransactionsList();
         },
         error: _ => {
             showToast('Algo deu errado ao criar a transação.', 'danger')
@@ -303,18 +449,8 @@ const updateTransaction = (transaction) => {
             transactionCard.find('.transaction-card-category').text(transaction.category);
             transactionCard.find('.transaction-card-amount .amount-value').text(transaction.amount);
             transactionCard.find('.transaction-card-description').text(transaction.description);
-
-            const transactionCardAmount =  transactionCard.find('.transaction-card-amount');
-            if (transaction.type == "Despesa") {
-                transactionCardAmount.removeClass('text-success');
-                transactionCardAmount.addClass('text-danger');
-            }
-            else {
-                transactionCardAmount.removeClass('text-danger');
-                transactionCardAmount.addClass('text-success');
-            }
-
-            updateSum();
+            
+            updateTransactionsList();
         },
         error: _ => {
             showToast('Algo deu errado ao atualizar a transação.', 'danger')
@@ -337,7 +473,7 @@ const deleteTransaction = (id) => {
                 $('.transactions-placeholder').show();
             }
 
-            updateSum()
+            updateTransactionsList();
         },
         error: _ => {
             showToast('Algo deu errado ao excluir a transação.', 'danger')
@@ -364,11 +500,38 @@ const updateSum = () => {
     }
 }
 
-// const updateOrder = () => {
-//     $('.transaction-card').each((_, element) => {
-//         const transaction = $(element).data('transaction');
-//     });
-// }
+const updateTransactionsList = () => {
+    let transactions = [];
+    $('.transaction-card').each((_, element) => {
+        transactions.push($(element).data('transaction'));
+    });
+
+    buildTransactionCards(transactions);
+}
+
+const setCategoriesFilter = (selectedCategory) => {
+    let categories = [];
+    $('.transaction-card').each((_, element) => {
+        categories.push($(element).data('transaction').category);
+    });
+    categories = [...new Set(categories)];
+
+    categoriesSelect = $('.category-filter');
+    categoriesSelect.empty();
+
+    categoriesSelect.append($('<option>', {
+        text : 'Todas as categorias'
+    }));
+
+    for (const category of categories) {
+        categoriesSelect.append($('<option>', {
+            value: category,
+            text : category,
+            selected: category == selectedCategory
+        }));
+    }
+}
+
 
 const showToast = (message, type) => {
     $('.toastMessage').text(message);
