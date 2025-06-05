@@ -16,15 +16,16 @@
             <button type="button" class="btn btn-success btn-access-user-area">Acessar</button>
         </div>
     </div>
-    <div class="subpage subpage-transactions d-flex flex-column">
-        <div class="subpage-header d-flex justify-content-between">
-            <h2>Transações de <span class="username-display"></span></h2>
+    <div class="subpage subpage-transactions d-flex flex-column gap-3">
+        <h2>Transações de <span class="username-display"></span></h2>
+        <div class="subpage-header d-flex justify-content-between align-items-end">
+            <div>Total das transações exibidas: R$ <span class="transactions-sum"></span></div>
             <button class="btn btn-success btn-show-add-modal">Adicionar transação</button>
         </div>
         <div class="transactions-placeholder align-items-center justify-content-center" style="flex: 1; display: none; max-height: 50%; min-height: 50%;">
             Não foram encontradas transações registradas para este usuário.
         </div>
-        <div class="transactions-container"></div>
+        <div class="transactions-container d-flex flex-column gap-2"></div>
     </div>
 
     <!-- Toast -->

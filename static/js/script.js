@@ -119,11 +119,19 @@ const showAddModal = _ => {
 };
 
 const formatDateToYYYYMMDD = (date) => {
-  const year = date.getFullYear();
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const day = date.getDate().toString().padStart(2, '0');
-  
-  return `${year}-${month}-${day}`;
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+}
+
+function formatDate(yyyyMmDd) {
+    const parts = yyyyMmDd.split('-');
+    const year = parts[0];
+    const month = parts[1];
+    const day = parts[2];
+    return `${day}/${month}/${year}`;
 }
 
 const accessUserArea = _ => {
@@ -165,18 +173,23 @@ const showTransactions = (transactions) => {
     }
 
     for (const transaction of transactions) {
-        buildTransaction(transaction);
+        buildTransactionCard(transaction);
     }
 }
 
-const buildTransaction = (transaction) => {
+const buildTransactionCard = (transaction) => {
     $('.transactions-placeholder').hide();
 
     const transactionsContainer = $('.transactions-container');
     const transactionCard = $(`
-        <div class="transaction-card card m-2" data-id=${transaction.id}>
+        <div class="transaction-card card" data-id=${transaction.id}>
             <div class="card-body d-flex align-items-center" style="gap: 10px;">
-                <span class="transaction-card-description flex-grow-1">${transaction.description}</span>
+                <div class="flex-grow-1">
+                    <div class="transaction-card-date">${formatDate(transaction.date)}</div>
+                    <div class="transaction-card-category">${transaction.category}</div>
+                    <div class="transaction-card-amount">R$ <span class="amount-value">${transaction.amount}</span></div>
+                    <div class="transaction-card-description text-secondary">${transaction.description}</div>
+                </div>
                 <button type="button" class="btn btn-light btn-update-transaction" title="Editar transação">
                     <i class="bi bi-pencil"></i>
                 </button>
@@ -186,10 +199,23 @@ const buildTransaction = (transaction) => {
             </div>
         </div>
     `).appendTo(transactionsContainer);
+    
+    const transactionCardAmount =  transactionCard.find('.transaction-card-amount');
+
+    if (transaction.type == "Despesa") {
+        transactionCardAmount.removeClass('text-success');
+        transactionCardAmount.addClass('text-danger');
+    }
+    else {
+        transactionCardAmount.removeClass('text-danger');
+        transactionCardAmount.addClass('text-success');
+    }
 
     transactionCard.data('transaction', transaction);
     transactionCard.data('id', transaction.id);
     bindTransactionCardEvents(transactionCard)
+
+    updateSum();
 
     return transactionCard;
 }
@@ -242,7 +268,7 @@ const addTransaction = (transaction) => {
 
             showToast(response.message, 'success');
             transaction.id = response.transactionId;
-            buildTransaction(transaction);
+            buildTransactionCard(transaction);
         },
         error: _ => {
             showToast('Algo deu errado ao criar a transação.', 'danger')
@@ -273,7 +299,22 @@ const updateTransaction = (transaction) => {
 
             const transactionCard = $(`.transaction-card[data-id=${transaction.id}]`);
             transactionCard.data('transaction', transaction);
+            transactionCard.find('.transaction-card-date').text(formatDate(transaction.date));
+            transactionCard.find('.transaction-card-category').text(transaction.category);
+            transactionCard.find('.transaction-card-amount .amount-value').text(transaction.amount);
             transactionCard.find('.transaction-card-description').text(transaction.description);
+
+            const transactionCardAmount =  transactionCard.find('.transaction-card-amount');
+            if (transaction.type == "Despesa") {
+                transactionCardAmount.removeClass('text-success');
+                transactionCardAmount.addClass('text-danger');
+            }
+            else {
+                transactionCardAmount.removeClass('text-danger');
+                transactionCardAmount.addClass('text-success');
+            }
+
+            updateSum();
         },
         error: _ => {
             showToast('Algo deu errado ao atualizar a transação.', 'danger')
@@ -295,12 +336,39 @@ const deleteTransaction = (id) => {
             if ($('.transaction-card').length == 0) {
                 $('.transactions-placeholder').show();
             }
+
+            updateSum()
         },
         error: _ => {
             showToast('Algo deu errado ao excluir a transação.', 'danger')
         }
     });
 }
+
+const updateSum = () => {
+    let sum = 0;
+    $('.transaction-card').each((_, element) => {
+        const transaction = $(element).data('transaction');
+        sum += (transaction.type == "Despesa") ? (-transaction.amount) : (transaction.amount);
+    });
+    const transactionsSum = $('.transactions-sum');
+    transactionsSum.text(sum.toFixed(2));
+    
+    if (sum < 0) {
+        transactionsSum.removeClass('text-success');
+        transactionsSum.addClass('text-danger');
+    }
+    else {
+        transactionsSum.removeClass('text-danger');
+        transactionsSum.addClass('text-success');
+    }
+}
+
+// const updateOrder = () => {
+//     $('.transaction-card').each((_, element) => {
+//         const transaction = $(element).data('transaction');
+//     });
+// }
 
 const showToast = (message, type) => {
     $('.toastMessage').text(message);
