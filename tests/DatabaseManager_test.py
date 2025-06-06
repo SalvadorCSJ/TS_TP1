@@ -164,3 +164,37 @@ class TestDatabaseManager:
         db_manager.close()
         with pytest.raises(RuntimeError):
             db_manager.commit()
+
+    def test_add_transaction_with_invalid_type(self, db_manager):
+        db_manager.create_user_table("test_user")
+
+        with pytest.raises(ValueError, match="Transaction type must be 'Receita' or 'Despesa'"):
+            invalid_type_transaction = Transaction(date(2023, 10, 1), "Invalid Transaction", "Invalid Category", 100.0, TransactionType('InvalidType'))
+            db_manager.add_transaction("test_user",invalid_type_transaction)
+    
+    def test_ensure_user_table_exists_no_connection(self, db_manager):
+        db_manager.close()
+        
+        with pytest.raises(RuntimeError, match="Database connection is not established for ensure_user_table_exists."):
+            db_manager.ensure_user_table_exists("test_user")
+
+    def test_create_user_table_when_user_exists(self, db_manager):
+        db_manager.create_user_table("existing_user")
+        
+        with pytest.raises(ValueError, match="Username 'existing_user' already exists."):
+            db_manager.create_user_table("existing_user")
+
+    def test_balance_after_multiple_transactions(self, db_manager):
+        transaction1 = Transaction(date(2023, 10, 1), "Test Transaction 1", "Test Category", 200.0, TransactionType('Receita'))
+        transaction2 = Transaction(date(2023, 10, 2), "Test Transaction 2", "Test Category 2", 100.0, TransactionType('Despesa'))
+        db_manager.create_user_table("test_user")
+        
+        balance = 0
+        
+        db_manager.add_transaction("test_user",transaction1)
+        db_manager.add_transaction("test_user",transaction2)
+
+        credits = db_manager.get_all_credits("test_user")[0][3]
+        debits = db_manager.get_all_debits("test_user")[0][3]
+
+        assert balance + credits - debits == 100.0
