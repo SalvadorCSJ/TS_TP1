@@ -39,7 +39,7 @@ class DatabaseManager:
         self.ensure_user_table_exists(user)
 
         query_parameters = (
-            transaction.get_date(),
+            transaction.get_date().isoformat(),
             transaction.get_description(),
             transaction.get_category(),
             transaction.get_amount(),
@@ -56,7 +56,7 @@ class DatabaseManager:
         if not self.cursor:
             raise RuntimeError("Database connection is not established.")
         query_parameters = (
-            updated_transaction.get_date(),
+            updated_transaction.get_date().isoformat(),
             updated_transaction.get_description(),
             updated_transaction.get_category(),
             updated_transaction.get_amount(),
